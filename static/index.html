@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lyric Stickers</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  background: #0f0f0f;
+  color: #e0e0e0;
+  min-height: 100vh;
+  display: flex; flex-direction: column;
+}
+header {
+  padding: 1rem 1.5rem 0.3rem;
+  border-bottom: 1px solid #222;
+}
+header h1 { font-size: 1.2rem; font-weight: 600; }
+.subtitle { font-size: 0.8rem; color: #777; padding-bottom: 0.6rem; }
+
+.app {
+  display: flex;
+  gap: 1.5rem;
+  padding: 1.5rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+  flex: 1;
+}
+.left-panel { flex: 1.2; min-width: 280px; display: flex; flex-direction: column; gap: 1rem; }
+.right-panel { flex: 1; display: flex; flex-direction: column; gap: 1rem; }
+
+label { font-size: 0.85rem; color: #999; display: block; margin-bottom: 0.3rem; }
+select, input[type="file"] {
+  width: 100%; padding: 0.5rem;
+  background: #1a1a1a; border: 1px solid #333; border-radius: 6px;
+  color: #e0e0e0; font-size: 0.9rem;
+}
+.slider-row { display: flex; align-items: center; gap: 0.6rem; }
+.slider-row input[type="range"] { flex: 1; accent-color: #667eea; }
+.slider-row span { font-size: 0.85rem; min-width: 2.5rem; text-align: right; }
+
+.gradient-picker { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.gradient-swatch {
+  width: 36px; height: 36px; border-radius: 6px; cursor: pointer;
+  border: 2px solid transparent; transition: border-color 0.15s;
+}
+.gradient-swatch.active { border-color: #fff; }
+
+.preview-img {
+  max-width: 100%; max-height: 420px;
+  border-radius: 8px; background: #1a1a1a;
+  object-fit: contain;
+}
+.placeholder {
+  width: 100%; height: 250px; border-radius: 8px;
+  background: #1a1a1a; border: 1px dashed #333;
+  display: flex; align-items: center; justify-content: center;
+  color: #555; font-size: 0.9rem;
+}
+
+.btn-row { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+button {
+  padding: 0.5rem 1rem; border: none; border-radius: 6px;
+  font-size: 0.85rem; cursor: pointer; font-weight: 500; transition: opacity 0.15s;
+}
+button:hover { opacity: 0.85; }
+.btn-preview { background: #667eea; color: #fff; }
+.btn-download { background: #28a745; color: #fff; }
+.btn-zip { background: #fa709a; color: #fff; }
+.btn-save { background: #555; color: #fff; }
+
+.table-wrap { width: 100%; }
+table {
+  width: 100%; border-collapse: collapse;
+  background: #1a1a1a; border-radius: 6px; overflow: hidden;
+}
+th { text-align: left; padding: 0.5rem 0.6rem; background: #222; font-size: 0.8rem; color: #999; }
+td { padding: 0.3rem 0.4rem; border-top: 1px solid #222; }
+td input {
+  width: 100%; background: transparent; border: none;
+  color: #e0e0e0; font-size: 0.85rem; padding: 0.25rem;
+  outline: none;
+}
+td input:focus { background: #252525; }
+td.row-num { width: 2rem; text-align: center; color: #555; font-size: 0.8rem; }
+td.row-actions { width: 2rem; text-align: center; }
+td.row-actions button {
+  background: none; color: #555; font-size: 0.9rem; padding: 0.1rem 0.3rem;
+}
+td.row-actions button:hover { color: #e55; }
+.add-row-btn {
+  background: #222; color: #999; width: 100%; padding: 0.4rem;
+  font-size: 0.8rem; border-radius: 0 0 6px 6px;
+}
+
+.data-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+
+.settings-section { display: flex; flex-direction: column; gap: 0.8rem; }
+.settings-section .row { display: flex; gap: 0.8rem; }
+.settings-section .row > div { flex: 1; }
+
+footer {
+  border-top: 1px solid #222;
+  padding: 1.5rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+}
+footer h3 { font-size: 0.9rem; margin-bottom: 0.5rem; color: #bbb; }
+footer p, footer li { font-size: 0.8rem; color: #777; line-height: 1.5; }
+footer ul { padding-left: 1.2rem; margin-bottom: 0.8rem; }
+footer code { background: #1a1a1a; padding: 0.1rem 0.3rem; border-radius: 3px; font-size: 0.78rem; }
+.credits {
+  margin-top: 1rem; padding-top: 0.8rem; border-top: 1px solid #1a1a1a;
+  font-size: 0.75rem; color: #555; text-align: center;
+}
+.credits a { color: #667eea; text-decoration: none; }
+.credits a:hover { text-decoration: underline; }
+
+@media (max-width: 700px) {
+  .app { flex-direction: column; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Lyric Stickers</h1>
+  <p class="subtitle">Turn song lyrics into styled images and sticker packs</p>
+</header>
+
+<div class="app">
+  <!-- LEFT: Data input only -->
+  <div class="left-panel">
+    <div>
+      <label>Upload lyric file (.json or .txt)</label>
+      <input type="file" id="fileInput" accept=".txt,.json">
+    </div>
+
+    <div>
+      <label>Lyrics — one record per row, use <code>/</code> for line breaks within a sticker</label>
+      <div class="table-wrap">
+        <table id="lyricsTable">
+          <thead><tr><th>#</th><th>Lyric text</th><th></th></tr></thead>
+          <tbody></tbody>
+        </table>
+        <button class="add-row-btn" onclick="addRow('')">+ Add row</button>
+      </div>
+    </div>
+
+    <div class="data-actions">
+      <button class="btn-save" onclick="saveInputJson()">Save lyric data as JSON</button>
+    </div>
+  </div>
+
+  <!-- RIGHT: Preview + Settings -->
+  <div class="right-panel">
+    <div class="placeholder" id="placeholder">Click a row, then Preview</div>
+    <img class="preview-img" id="previewImg" style="display:none">
+
+    <div class="settings-section">
+      <div class="row">
+        <div>
+          <label>Preset</label>
+          <select id="preset">
+            <option value="square">Square (1:1)</option>
+            <option value="instagram-story">Story (9:16)</option>
+            <option value="instagram-post">Post (4:5)</option>
+            <option value="signal-sticker">Sticker (512)</option>
+          </select>
+        </div>
+        <div>
+          <label>Fill width</label>
+          <div class="slider-row">
+            <input type="range" id="fill" min="10" max="100" value="70">
+            <span id="fillVal">70%</span>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <label>Background</label>
+        <div class="gradient-picker" id="bgPicker"></div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn-preview" onclick="previewSelected()">Preview</button>
+        <button class="btn-download" onclick="downloadSelected()">Download PNG</button>
+        <button class="btn-zip" onclick="downloadAll()">Download All (ZIP)</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <h3>How to use</h3>
+  <ul>
+    <li>Type lyrics directly into the table rows, or upload a <code>.json</code> / <code>.txt</code> file.</li>
+    <li>Use <code>/</code> within a row to add line breaks inside the sticker (e.g. <code>line one / line two</code>).</li>
+    <li>Click a row to select it, then hit <strong>Preview</strong> to see how it looks.</li>
+    <li>Adjust the preset (aspect ratio), background gradient, and fill width slider to style the output.</li>
+    <li><strong>Download PNG</strong> saves the selected row. <strong>Download All</strong> saves every row as a ZIP.</li>
+    <li><strong>Save lyric data as JSON</strong> exports your current table data so you can reload it later.</li>
+  </ul>
+  <p>JSON format: <code>{"name": "line 1\nline 2", ...}</code> — each key becomes the output filename.</p>
+  <p>TXT format: one record per line, <code> / </code> = newline within the image.</p>
+  <div class="credits">
+    Made by <a href="https://belleelene.com" target="_blank" rel="noopener">belleelene</a>
+  </div>
+</footer>
+
+<script>
+const GRADIENTS = {
+  pastel: ['#ffecd2', '#fcb69f'],
+  moody: ['#1a1a2e', '#16213e'],
+  sunset: ['#fa709a', '#fee140'],
+  ocean: ['#667eea', '#764ba2'],
+  mint: ['#a8edea', '#fed6e3'],
+};
+
+const EXAMPLE_DATA = {
+  "sticker_1": "Όλοι δουλεύουμε για ένα κομμάτι κι ας το εννοούμε διαφορετικά\nΕγώ είµαι ο Luffy, ο Ψηλός είναι ο Zoro µε µία µπαντάνα και τρία σπαθιά",
+  "sticker_2": "Τι δουλειά εἰν αυτή που βρήκες\nνα στα τρὠν οι πιτσιρίκες.",
+  "sticker_3": "one more / with a break"
+};
+
+
+let selectedBg = 'moody';
+let selectedRow = 0;
+
+// --- Gradient picker ---
+const picker = document.getElementById('bgPicker');
+for (const [name, [top, bottom]] of Object.entries(GRADIENTS)) {
+  const swatch = document.createElement('div');
+  swatch.className = 'gradient-swatch' + (name === selectedBg ? ' active' : '');
+  swatch.style.background = `linear-gradient(to bottom, ${top}, ${bottom})`;
+  swatch.title = name;
+  swatch.onclick = () => {
+    document.querySelectorAll('.gradient-swatch').forEach(s => s.classList.remove('active'));
+    swatch.classList.add('active');
+    selectedBg = name;
+  };
+  picker.appendChild(swatch);
+}
+
+// --- Fill slider ---
+const fillSlider = document.getElementById('fill');
+const fillVal = document.getElementById('fillVal');
+fillSlider.oninput = () => fillVal.textContent = fillSlider.value + '%';
+
+// --- Table ---
+const tbody = document.querySelector('#lyricsTable tbody');
+
+function addRow(text) {
+  const tr = document.createElement('tr');
+  const idx = tbody.children.length + 1;
+  tr.innerHTML = `
+    <td class="row-num">${idx}</td>
+    <td><input type="text" value="${text.replace(/"/g, '&quot;')}" placeholder="Type lyrics here..."></td>
+    <td class="row-actions"><button onclick="removeRow(this)">&times;</button></td>
+  `;
+  tr.querySelector('input').onfocus = () => {
+    selectedRow = Array.from(tbody.children).indexOf(tr);
+    highlightRow();
+  };
+  tbody.appendChild(tr);
+}
+
+function removeRow(btn) {
+  btn.closest('tr').remove();
+  renumberRows();
+}
+
+function renumberRows() {
+  Array.from(tbody.children).forEach((tr, i) => {
+    tr.querySelector('.row-num').textContent = i + 1;
+  });
+}
+
+function highlightRow() {
+  Array.from(tbody.children).forEach((tr, i) => {
+    tr.style.background = i === selectedRow ? '#252525' : '';
+  });
+}
+
+function getRecords() {
+  return Array.from(tbody.querySelectorAll('input'))
+    .map(inp => inp.value.trim())
+    .filter(v => v);
+}
+
+function getSelectedText() {
+  const inputs = Array.from(tbody.querySelectorAll('input'));
+  if (inputs.length === 0) return '';
+  const idx = Math.min(selectedRow, inputs.length - 1);
+  const raw = inputs[idx]?.value.trim() || '';
+  return raw.replace(/ \/ /g, '\n').replace(/\//g, '\n');
+}
+
+// --- Load example data ---
+function loadData(data) {
+  tbody.innerHTML = '';
+  for (const val of Object.values(data)) {
+    addRow(val.replace(/\n/g, ' / ').trim());
+  }
+  selectedRow = 0;
+  highlightRow();
+}
+
+loadData(EXAMPLE_DATA);
+
+// --- File upload ---
+document.getElementById('fileInput').onchange = async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const text = await file.text();
+
+  tbody.innerHTML = '';
+
+  if (file.name.endsWith('.json')) {
+    const data = JSON.parse(text);
+    loadData(data);
+  } else {
+    for (const line of text.split('\n')) {
+      if (line.trim()) addRow(line.trim());
+    }
+    selectedRow = 0;
+    highlightRow();
+  }
+};
+
+// --- Save lyric data as JSON ---
+function saveInputJson() {
+  const inputs = Array.from(tbody.querySelectorAll('input'));
+  const data = {};
+  inputs.forEach((inp, i) => {
+    const val = inp.value.trim();
+    if (val) {
+      data[`sticker_${i + 1}`] = val.replace(/ \/ /g, '\n').replace(/\//g, '\n');
+    }
+  });
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'lyrics_input.json';
+  a.click();
+}
+
+// --- API calls ---
+function getFormData(text) {
+  const fd = new FormData();
+  fd.append('text', text);
+  fd.append('preset', document.getElementById('preset').value);
+  fd.append('bg', selectedBg);
+  fd.append('fill', fillSlider.value);
+  return fd;
+}
+
+async function previewSelected() {
+  const text = getSelectedText();
+  if (!text) return;
+  const resp = await fetch('/api/preview', { method: 'POST', body: getFormData(text) });
+  const blob = await resp.blob();
+  const url = URL.createObjectURL(blob);
+  const img = document.getElementById('previewImg');
+  img.src = url;
+  img.style.display = 'block';
+  document.getElementById('placeholder').style.display = 'none';
+}
+
+async function downloadSelected() {
+  const text = getSelectedText();
+  if (!text) return;
+  const fd = getFormData(text);
+  const resp = await fetch('/api/render', { method: 'POST', body: fd });
+  const blob = await resp.blob();
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'lyric.png';
+  a.click();
+}
+
+async function downloadAll() {
+  const records = getRecords().map(r => r.replace(/ \/ /g, '\n').replace(/\//g, '\n'));
+  if (records.length === 0) return;
+  const fd = new FormData();
+  fd.append('records', JSON.stringify(records));
+  fd.append('preset', document.getElementById('preset').value);
+  fd.append('bg', selectedBg);
+  fd.append('fill', fillSlider.value);
+  const resp = await fetch('/api/render-all', { method: 'POST', body: fd });
+  const blob = await resp.blob();
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'lyrics.zip';
+  a.click();
+}
+</script>
+</body>
+</html>
