@@ -28,7 +28,7 @@ lyric-stickers/
 │   └── presets.py       # Aspect ratio definitions
 ├── fonts/
 │   └── Inter-Regular.ttf
-├── static/              # Webapp frontend files
+├── docs/              # Webapp frontend files
 │   ├── index.html
 │   ├── style.css
 │   └── app.js
@@ -86,6 +86,6 @@ All support Docker or direct Python deploy. Repo stays on GitHub regardless.
 1. `presets.py` + `backgrounds.py` — data definitions
 2. `engine.py` — text layout + Pillow rendering (core of everything)
 3. `cli.py` — working CLI
-4. `app.py` + `static/` — webapp with live preview
+4. `app.py` + `docs/` — webapp with live preview
 5. Signal sticker pack export (ZIP of 512×512 WebP)
 6. Test, tune spacing, polish

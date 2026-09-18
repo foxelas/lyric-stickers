@@ -5,16 +5,16 @@ Generate styled lyric images and sticker packs from song lyrics.
 ## Web App
 
 The web app runs entirely in the browser (Canvas API) — no backend needed.
-Open `static/index.html` locally or deploy it as a static site.
+Open `docs/index.html` locally or deploy it as a static site.
 
 ### Local preview
 
 ```bash
 # Option A: just open the file
-open static/index.html
+open docs/index.html
 
 # Option B: run a local server (needed for file upload to work in some browsers)
-python3 -m http.server 8000 --directory static
+python3 -m http.server 8000 --directory docs
 ```
 
 ## CLI Usage
@@ -88,11 +88,11 @@ python3 cli.py --lyrics songs.txt --preset instagram-post --bg mint --format web
 
 ### GitHub Pages (static site, free)
 
-The web app is fully client-side — deploy `static/` to GitHub Pages:
+The web app is fully client-side — deploy `docs/` to GitHub Pages:
 
 1. Go to repo **Settings > Pages**
 2. Set source to **Deploy from a branch**
-3. Set branch to `main` and folder to `/static`
+3. Set branch to `main` and folder to `/docs`
 4. Your app is live at `https://<username>.github.io/lyric-stickers/`
 
 ### Docker (self-hosted)
