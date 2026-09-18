@@ -1,151 +1,91 @@
-# Lyric Image & Sticker Pack Generator — Implementation Plan
+# Lyric Sticker Generator — Plan
 
-## Context
+## What it does
 
-Build a tool that takes song lyrics, lays them out line-by-line (quote-card style), and renders them as images in specific aspect ratios (Instagram story 9:16, square 1:1, etc.) with subtle gradient backgrounds. Also generates Signal-compatible sticker packs (512×512 WebP). Two phases: Python CLI first, then a browser-based app.
+Takes song lyrics, wraps text to fill a target width (adjustable), renders them onto images with gradient backgrounds in specific aspect ratios (Instagram story, square, etc.), and exports as PNG or Signal-compatible WebP sticker packs.
 
----
+## Input format
 
-## Phase 1: Python CLI Tool
+- **Table input** (webapp): each row = one lyric record. `/` within a row = forced newline.
+- **TXT file upload**: each line = one record, `/` = forced newline. Auto-fills the table.
+- **CLI**: `--lyrics file.txt` or `--text "line 1 / line 2"`
 
-### 1.1 Project Structure
+## Key behavior
+
+- Text wraps to fill the target image width (minus padding). A **fill slider** (0–100%) controls how aggressively text fills the width — low = short centered lines, high = text spans edge to edge.
+- One bundled font for now (Inter or similar open-source sans-serif).
+- A few preset gradient backgrounds: muted pastel, dark moody, warm sunset, cool ocean.
+- Each lyric record → one image/sticker.
+
+## Project structure
 
 ```
-lyric-sticker/
+lyric-stickers/
 ├── lyricimg/
 │   ├── __init__.py
-│   ├── core.py          # Text layout engine
-│   ├── renderer.py      # Image rendering (Pillow)
-│   ├── backgrounds.py   # Gradient/subtle background generators
-│   ├── fonts.py         # Font loading & management
-│   ├── stickers.py      # Signal sticker pack export
-│   └── presets.py       # Aspect ratio presets
-├── fonts/                # Bundled open-source fonts
-├── cli.py               # CLI entry point
+│   ├── engine.py        # Text layout + image rendering (Pillow)
+│   ├── backgrounds.py   # Gradient presets
+│   └── presets.py       # Aspect ratio definitions
+├── fonts/
+│   └── Inter-Regular.ttf
+├── static/              # Webapp frontend files
+│   ├── index.html
+│   ├── style.css
+│   └── app.js
+├── cli.py               # CLI entry point (click)
+├── app.py               # FastAPI webapp
 ├── requirements.txt
-└── README.md
+└── dev/
+    └── plan.md
 ```
 
-### 1.2 Core Modules
+## Presets
 
-**`presets.py` — Aspect ratio definitions**
-- `INSTAGRAM_STORY`: 1080×1920 (9:16)
-- `INSTAGRAM_SQUARE`: 1080×1080 (1:1)
-- `INSTAGRAM_POST`: 1080×1350 (4:5)
-- `SIGNAL_STICKER`: 512×512 (1:1)
-- Custom ratio support via CLI args
+| Name | Size | Ratio |
+|------|------|-------|
+| `instagram-story` | 1080×1920 | 9:16 |
+| `square` | 1080×1080 | 1:1 |
+| `instagram-post` | 1080×1350 | 4:5 |
+| `signal-sticker` | 512×512 | 1:1 |
 
-**`core.py` — Text layout engine**
-- Parse lyrics text (split by newlines, handle blank lines as section breaks)
-- Auto-size font to fit the canvas with padding
-- Center-align text vertically and horizontally
-- Handle long lines: shrink font or soft-wrap
-- Return a layout spec: list of `(text, x, y, font_size)` tuples
+## Gradient presets
 
-**`backgrounds.py` — Gradient generators**
-- Linear gradient (top-to-bottom, configurable two colors)
-- Radial gradient (center-out)
-- Preset palettes: muted pastels, dark moody, warm sunset, cool ocean
-- User-specified hex colors
+| Name | Colors (top → bottom) |
+|------|----------------------|
+| `pastel` | #ffecd2 → #fcb69f |
+| `moody` | #1a1a2e → #16213e |
+| `sunset` | #fa709a → #fee140 |
+| `ocean` | #667eea → #764ba2 |
+| `mint` | #a8edea → #fed6e3 |
 
-**`renderer.py` — Image rendering with Pillow**
-- Takes layout spec + background + font → renders final PIL Image
-- Text rendering with anti-aliasing
-- Optional subtle text shadow for readability
-- Export as PNG (full-size images) or WebP (stickers)
-
-**`stickers.py` — Signal sticker export**
-- Split lyrics into chunks (one sticker per line or per couplet)
-- Render each chunk at 512×512 WebP
-- Package into a directory ready for upload via [Signal sticker tools](https://github.com/nickoala/nicko-sticker-packs) or signalstickers.com
-- Generate a manifest/metadata file
-
-**`fonts.py` — Font management**
-- Bundle 3-4 open-source fonts (e.g., Inter, Playfair Display, Caveat, JetBrains Mono)
-- Load custom .ttf/.otf from a path
-- Font selection via CLI flag
-
-### 1.3 CLI Interface
+## CLI usage
 
 ```bash
-# Basic usage — generates PNG
-python cli.py --lyrics "lyrics.txt" --preset instagram-story --output out.png
-
-# With styling
-python cli.py --lyrics "lyrics.txt" --preset square \
-  --font playfair --bg-style gradient \
-  --bg-colors "#1a1a2e,#16213e" --text-color "#eee" \
-  --output out.png
-
-# Generate sticker pack
-python cli.py --lyrics "lyrics.txt" --sticker-pack \
-  --output ./stickers/
+python cli.py --lyrics songs.txt --preset square --bg moody --fill 70 --output ./out/
+python cli.py --text "hello world / second line" --preset instagram-story --output hello.png
 ```
 
-### 1.4 Dependencies
+## Webapp
 
-- **Pillow** — image rendering
-- **click** — CLI framework
-- **numpy** — gradient math (optional, Pillow can do basic gradients)
+- **FastAPI** backend reusing `lyricimg/` — serves API + static files
+- **Frontend**: left panel = lyrics table + file upload + controls (preset dropdown, bg picker, fill slider); right panel = live preview
+- **Endpoints**: `POST /api/preview`, `POST /api/render` (PNG), `POST /api/sticker-pack` (ZIP of WebP)
 
----
+## Deployment (later)
 
-## Phase 2: Browser-Based App
+Cheapest Python webapp hosting options:
+- **Render.com** — free tier for web services, sleeps after 15min inactivity
+- **Fly.io** — free allowance, stays warm
+- **Railway** — $5/mo hobby plan
+- **Hugging Face Spaces** — free, but less control over custom UI
 
-### 2.1 Architecture
+All support Docker or direct Python deploy. Repo stays on GitHub regardless.
 
-**Recommended: FastAPI backend + vanilla HTML/JS/CSS frontend**
+## Implementation order
 
-Why this approach:
-- Reuses all Phase 1 Python code (core, renderer, backgrounds) without rewriting
-- FastAPI serves the API and static frontend files — single deployment
-- No React/build tooling overhead for what is essentially a form + preview
-- Server-side rendering means consistent output across browsers
-- Easy sticker pack ZIP generation server-side
-
-### 2.2 Backend (FastAPI)
-
-**Endpoints:**
-- `POST /api/preview` — accepts lyrics + settings, returns a preview image (lower res)
-- `POST /api/render` — accepts lyrics + settings, returns full-res PNG
-- `POST /api/sticker-pack` — accepts lyrics + settings, returns ZIP of WebP stickers
-- `GET /api/presets` — returns available presets, fonts, palettes
-- `GET /` — serves the frontend
-
-### 2.3 Frontend (vanilla HTML/JS/CSS)
-
-Simple single-page app:
-- **Left panel**: textarea for lyrics, dropdowns for preset/font/palette, color pickers for custom colors
-- **Right panel**: live preview of the rendered image (updates on change with debounce)
-- **Export buttons**: "Download PNG", "Download Sticker Pack (ZIP)"
-- Responsive layout (works on mobile too)
-- No build step — plain files served by FastAPI
-
-### 2.4 Frontend Dependencies
-
-- None required (vanilla JS + CSS)
-- Optional: a lightweight CSS framework like Pico CSS for clean defaults
-
----
-
-## Implementation Order
-
-| Step | What | Deliverable |
-|------|------|-------------|
-| 1 | Set up project, `presets.py`, `fonts.py` | Project scaffold, font loading |
-| 2 | `core.py` — text layout engine | Auto-sizing, centering, wrapping |
-| 3 | `backgrounds.py` — gradient generators | Gradient background images |
-| 4 | `renderer.py` — Pillow rendering | End-to-end PNG output |
-| 5 | `cli.py` — CLI with click | Working CLI tool |
-| 6 | `stickers.py` — Signal sticker export | Sticker pack directory + WebP |
-| 7 | Test with real lyrics, tune spacing/sizing | Polished output |
-| 8 | FastAPI backend + API endpoints | Server-side rendering API |
-| 9 | Frontend HTML/JS/CSS | Browser UI with live preview |
-| 10 | Sticker pack ZIP download in browser | Full browser feature parity |
-
----
-
-## Verification
-
-- **Phase 1**: Run CLI with sample lyrics, visually inspect output PNGs at each preset ratio. Verify sticker pack WebP files are 512×512 and under 300KB (Signal limit).
-- **Phase 2**: Start FastAPI server, open browser, enter lyrics, verify live preview updates. Download PNG and sticker ZIP, inspect outputs.
+1. `presets.py` + `backgrounds.py` — data definitions
+2. `engine.py` — text layout + Pillow rendering (core of everything)
+3. `cli.py` — working CLI
+4. `app.py` + `static/` — webapp with live preview
+5. Signal sticker pack export (ZIP of 512×512 WebP)
+6. Test, tune spacing, polish
