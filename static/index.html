@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Lyric Stickers</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap" rel="stylesheet">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body {
@@ -49,17 +51,16 @@ select, input[type="file"] {
 }
 .gradient-swatch.active { border-color: #fff; }
 
-.preview-img {
-  max-width: 100%; max-height: 420px;
-  border-radius: 8px; background: #1a1a1a;
+.preview-wrap {
+  width: 100%; display: flex; justify-content: center;
+  background: #1a1a1a; border-radius: 8px; padding: 0.5rem; min-height: 250px;
+  align-items: center;
+}
+.preview-wrap canvas {
+  max-width: 100%; max-height: 420px; border-radius: 4px;
   object-fit: contain;
 }
-.placeholder {
-  width: 100%; height: 250px; border-radius: 8px;
-  background: #1a1a1a; border: 1px dashed #333;
-  display: flex; align-items: center; justify-content: center;
-  color: #555; font-size: 0.9rem;
-}
+.placeholder-text { color: #555; font-size: 0.9rem; }
 
 .btn-row { display: flex; gap: 0.5rem; flex-wrap: wrap; }
 button {
@@ -133,7 +134,6 @@ footer code { background: #1a1a1a; padding: 0.1rem 0.3rem; border-radius: 3px; f
 </header>
 
 <div class="app">
-  <!-- LEFT: Data input only -->
   <div class="left-panel">
     <div>
       <label>Upload lyric file (.json or .txt)</label>
@@ -152,14 +152,15 @@ footer code { background: #1a1a1a; padding: 0.1rem 0.3rem; border-radius: 3px; f
     </div>
 
     <div class="data-actions">
-      <button class="btn-save" onclick="saveInputJson()">Save lyric data as JSON</button>
+      <button class="btn-save" onclick="saveInputJson()">Save input as JSON</button>
     </div>
   </div>
 
-  <!-- RIGHT: Preview + Settings -->
   <div class="right-panel">
-    <div class="placeholder" id="placeholder">Click a row, then Preview</div>
-    <img class="preview-img" id="previewImg" style="display:none">
+    <div class="preview-wrap" id="previewWrap">
+      <span class="placeholder-text" id="placeholder">Click a row, then Preview</span>
+      <canvas id="canvas" style="display:none"></canvas>
+    </div>
 
     <div class="settings-section">
       <div class="row">
@@ -202,24 +203,37 @@ footer code { background: #1a1a1a; padding: 0.1rem 0.3rem; border-radius: 3px; f
     <li>Use <code>/</code> within a row to add line breaks inside the sticker (e.g. <code>line one / line two</code>).</li>
     <li>Click a row to select it, then hit <strong>Preview</strong> to see how it looks.</li>
     <li>Adjust the preset (aspect ratio), background gradient, and fill width slider to style the output.</li>
-    <li><strong>Download PNG</strong> saves the selected row. <strong>Download All</strong> saves every row as a ZIP.</li>
-    <li><strong>Save lyric data as JSON</strong> exports your current table data so you can reload it later.</li>
+    <li><strong>Download PNG</strong> saves the selected row. <strong>Download All</strong> downloads every row as a ZIP.</li>
+    <li><strong>Save input as JSON</strong> exports your current table data so you can reload it later.</li>
   </ul>
   <p>JSON format: <code>{"name": "line 1\nline 2", ...}</code> — each key becomes the output filename.</p>
   <p>TXT format: one record per line, <code> / </code> = newline within the image.</p>
   <div class="credits">
-    Made by <a href="https://belleelene.com" target="_blank" rel="noopener">belleelene</a>
+    Made by foxelas. More on <a href="https://belleelene.com" target="_blank" rel="noopener">belleelene.com</a>
   </div>
 </footer>
 
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <script>
+const PRESETS = {
+  'square':          { w: 1080, h: 1080 },
+  'instagram-story': { w: 1080, h: 1920 },
+  'instagram-post':  { w: 1080, h: 1350 },
+  'signal-sticker':  { w: 512,  h: 512  },
+};
+
 const GRADIENTS = {
   pastel: ['#ffecd2', '#fcb69f'],
-  moody: ['#1a1a2e', '#16213e'],
+  moody:  ['#1a1a2e', '#16213e'],
   sunset: ['#fa709a', '#fee140'],
-  ocean: ['#667eea', '#764ba2'],
-  mint: ['#a8edea', '#fed6e3'],
+  ocean:  ['#667eea', '#764ba2'],
+  mint:   ['#a8edea', '#fed6e3'],
 };
+
+const PADDING_RATIO = 0.08;
+const LINE_SPACING = 1.4;
+const SHADOW_OFFSET = 2;
+const FONT_FAMILY = "'Inter', sans-serif";
 
 const EXAMPLE_DATA = {
   "sticker_1": "Όλοι δουλεύουμε για ένα κομμάτι κι ας το εννοούμε διαφορετικά\nΕγώ είµαι ο Luffy, ο Ψηλός είναι ο Zoro µε µία µπαντάνα και τρία σπαθιά",
@@ -227,11 +241,9 @@ const EXAMPLE_DATA = {
   "sticker_3": "one more / with a break"
 };
 
-
 let selectedBg = 'moody';
 let selectedRow = 0;
 
-// --- Gradient picker ---
 const picker = document.getElementById('bgPicker');
 for (const [name, [top, bottom]] of Object.entries(GRADIENTS)) {
   const swatch = document.createElement('div');
@@ -246,12 +258,10 @@ for (const [name, [top, bottom]] of Object.entries(GRADIENTS)) {
   picker.appendChild(swatch);
 }
 
-// --- Fill slider ---
 const fillSlider = document.getElementById('fill');
 const fillVal = document.getElementById('fillVal');
 fillSlider.oninput = () => fillVal.textContent = fillSlider.value + '%';
 
-// --- Table ---
 const tbody = document.querySelector('#lyricsTable tbody');
 
 function addRow(text) {
@@ -292,15 +302,19 @@ function getRecords() {
     .filter(v => v);
 }
 
+function textFromRow(raw) {
+  return raw.replace(/ \/ /g, '\n').replace(/\//g, '\n');
+}
+
 function getSelectedText() {
   const inputs = Array.from(tbody.querySelectorAll('input'));
   if (inputs.length === 0) return '';
   const idx = Math.min(selectedRow, inputs.length - 1);
   const raw = inputs[idx]?.value.trim() || '';
-  return raw.replace(/ \/ /g, '\n').replace(/\//g, '\n');
+  return textFromRow(raw);
 }
 
-// --- Load example data ---
+// Load example data
 function loadData(data) {
   tbody.innerHTML = '';
   for (const val of Object.values(data)) {
@@ -309,20 +323,15 @@ function loadData(data) {
   selectedRow = 0;
   highlightRow();
 }
-
 loadData(EXAMPLE_DATA);
 
-// --- File upload ---
 document.getElementById('fileInput').onchange = async (e) => {
   const file = e.target.files[0];
   if (!file) return;
   const text = await file.text();
-
   tbody.innerHTML = '';
-
   if (file.name.endsWith('.json')) {
-    const data = JSON.parse(text);
-    loadData(data);
+    loadData(JSON.parse(text));
   } else {
     for (const line of text.split('\n')) {
       if (line.trim()) addRow(line.trim());
@@ -332,15 +341,12 @@ document.getElementById('fileInput').onchange = async (e) => {
   }
 };
 
-// --- Save lyric data as JSON ---
 function saveInputJson() {
   const inputs = Array.from(tbody.querySelectorAll('input'));
   const data = {};
   inputs.forEach((inp, i) => {
     const val = inp.value.trim();
-    if (val) {
-      data[`sticker_${i + 1}`] = val.replace(/ \/ /g, '\n').replace(/\//g, '\n');
-    }
+    if (val) data[`sticker_${i + 1}`] = textFromRow(val);
   });
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   const a = document.createElement('a');
@@ -349,50 +355,125 @@ function saveInputJson() {
   a.click();
 }
 
-// --- API calls ---
-function getFormData(text) {
-  const fd = new FormData();
-  fd.append('text', text);
-  fd.append('preset', document.getElementById('preset').value);
-  fd.append('bg', selectedBg);
-  fd.append('fill', fillSlider.value);
-  return fd;
+function wrapText(ctx, text, maxWidth) {
+  const lines = [];
+  for (const paragraph of text.split('\n')) {
+    const trimmed = paragraph.trim();
+    if (!trimmed) { lines.push(''); continue; }
+    const words = trimmed.split(/\s+/);
+    let current = words[0];
+    for (let i = 1; i < words.length; i++) {
+      const candidate = current + ' ' + words[i];
+      if (ctx.measureText(candidate).width <= maxWidth) {
+        current = candidate;
+      } else {
+        lines.push(current);
+        current = words[i];
+      }
+    }
+    lines.push(current);
+  }
+  return lines;
 }
 
-async function previewSelected() {
+function fitFontSize(ctx, text, w, h, fill) {
+  const px = w * PADDING_RATIO;
+  const py = h * PADDING_RATIO;
+  const usableW = (w - 2 * px) * fill / 100;
+  const usableH = h - 2 * py;
+
+  for (let size = 120; size > 10; size -= 2) {
+    ctx.font = `${size}px ${FONT_FAMILY}`;
+    const wrapped = wrapText(ctx, text, usableW);
+    const totalH = size * LINE_SPACING * wrapped.length;
+    if (totalH <= usableH) return { size, lines: wrapped };
+  }
+  ctx.font = `12px ${FONT_FAMILY}`;
+  return { size: 12, lines: wrapText(ctx, text, usableW) };
+}
+
+function renderToCanvas(canvas, text, presetName, bgName, fill) {
+  const preset = PRESETS[presetName];
+  const [colorTop, colorBot] = GRADIENTS[bgName];
+  canvas.width = preset.w;
+  canvas.height = preset.h;
+  const ctx = canvas.getContext('2d');
+
+  // gradient background
+  const grad = ctx.createLinearGradient(0, 0, 0, preset.h);
+  grad.addColorStop(0, colorTop);
+  grad.addColorStop(1, colorBot);
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, preset.w, preset.h);
+
+  // fit text
+  const { size, lines } = fitFontSize(ctx, text, preset.w, preset.h, fill);
+  ctx.font = `${size}px ${FONT_FAMILY}`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'top';
+
+  const lineH = size * LINE_SPACING;
+  const totalH = lineH * lines.length;
+  const startY = (preset.h - totalH) / 2;
+
+  for (let i = 0; i < lines.length; i++) {
+    if (!lines[i]) continue;
+    const x = preset.w / 2;
+    const y = startY + i * lineH;
+    // shadow
+    ctx.fillStyle = 'rgba(0,0,0,0.25)';
+    ctx.fillText(lines[i], x + SHADOW_OFFSET, y + SHADOW_OFFSET);
+    // text
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText(lines[i], x, y);
+  }
+}
+
+function getSettings() {
+  return {
+    preset: document.getElementById('preset').value,
+    bg: selectedBg,
+    fill: parseInt(fillSlider.value),
+  };
+}
+
+function previewSelected() {
   const text = getSelectedText();
   if (!text) return;
-  const resp = await fetch('/api/preview', { method: 'POST', body: getFormData(text) });
-  const blob = await resp.blob();
-  const url = URL.createObjectURL(blob);
-  const img = document.getElementById('previewImg');
-  img.src = url;
-  img.style.display = 'block';
+  const canvas = document.getElementById('canvas');
+  const { preset, bg, fill } = getSettings();
+  renderToCanvas(canvas, text, preset, bg, fill);
+  canvas.style.display = 'block';
   document.getElementById('placeholder').style.display = 'none';
 }
 
-async function downloadSelected() {
+function downloadSelected() {
   const text = getSelectedText();
   if (!text) return;
-  const fd = getFormData(text);
-  const resp = await fetch('/api/render', { method: 'POST', body: fd });
-  const blob = await resp.blob();
+  const canvas = document.createElement('canvas');
+  const { preset, bg, fill } = getSettings();
+  renderToCanvas(canvas, text, preset, bg, fill);
   const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
+  a.href = canvas.toDataURL('image/png');
   a.download = 'lyric.png';
   a.click();
 }
 
 async function downloadAll() {
-  const records = getRecords().map(r => r.replace(/ \/ /g, '\n').replace(/\//g, '\n'));
+  const records = getRecords();
   if (records.length === 0) return;
-  const fd = new FormData();
-  fd.append('records', JSON.stringify(records));
-  fd.append('preset', document.getElementById('preset').value);
-  fd.append('bg', selectedBg);
-  fd.append('fill', fillSlider.value);
-  const resp = await fetch('/api/render-all', { method: 'POST', body: fd });
-  const blob = await resp.blob();
+  const { preset, bg, fill } = getSettings();
+  const zip = new JSZip();
+  const canvas = document.createElement('canvas');
+
+  for (let i = 0; i < records.length; i++) {
+    renderToCanvas(canvas, textFromRow(records[i]), preset, bg, fill);
+    const dataUrl = canvas.toDataURL('image/png');
+    const base64 = dataUrl.split(',')[1];
+    zip.file(`lyric_${String(i + 1).padStart(3, '0')}.png`, base64, { base64: true });
+  }
+
+  const blob = await zip.generateAsync({ type: 'blob' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = 'lyrics.zip';

@@ -6,7 +6,10 @@ from PIL import Image, ImageDraw, ImageFont
 from .backgrounds import make_background
 from .presets import PRESETS, DEFAULT_PRESET
 
-DEFAULT_FONT = "/System/Library/Fonts/HelveticaNeue.ttc"
+DEFAULT_FONT = os.environ.get(
+    "LYRIC_FONT",
+    "/System/Library/Fonts/HelveticaNeue.ttc",
+)
 PADDING_RATIO = 0.08
 LINE_SPACING_RATIO = 1.4
 TEXT_COLOR = "#ffffff"

@@ -2,15 +2,27 @@
 
 Generate styled lyric images and sticker packs from song lyrics.
 
-## Setup
+## Web App
+
+The web app runs entirely in the browser (Canvas API) — no backend needed.
+Open `static/index.html` locally or deploy it as a static site.
+
+### Local preview
 
 ```bash
-pip install -r requirements.txt
+# Option A: just open the file
+open static/index.html
+
+# Option B: run a local server (needed for file upload to work in some browsers)
+python3 -m http.server 8000 --directory static
 ```
 
 ## CLI Usage
 
+The CLI uses Python + Pillow for batch image generation.
+
 ```bash
+pip install -r requirements.txt
 python3 cli.py [OPTIONS]
 ```
 
@@ -29,7 +41,7 @@ python3 cli.py [OPTIONS]
 
 ### Examples
 
-From a JSON file (each key → one image):
+From a JSON file (each key -> one image):
 
 ```bash
 python3 cli.py --lyrics data/sadam.json --preset square --bg sunset --fill 80 -o output
@@ -41,7 +53,7 @@ Inline text (`/` splits lines):
 python3 cli.py --text "first line / second line" --preset instagram-story --bg moody -o output
 ```
 
-From a TXT file (each line → one image, `/` = newline within image):
+From a TXT file (each line -> one image, `/` = newline within image):
 
 ```bash
 python3 cli.py --lyrics songs.txt --preset instagram-post --bg mint --format webp -o stickers
@@ -57,17 +69,59 @@ python3 cli.py --lyrics songs.txt --preset instagram-post --bg mint --format web
 
 | Name | Size | Ratio |
 |------|------|-------|
-| `square` | 1080×1080 | 1:1 |
-| `instagram-story` | 1080×1920 | 9:16 |
-| `instagram-post` | 1080×1350 | 4:5 |
-| `signal-sticker` | 512×512 | 1:1 |
+| `square` | 1080x1080 | 1:1 |
+| `instagram-story` | 1080x1920 | 9:16 |
+| `instagram-post` | 1080x1350 | 4:5 |
+| `signal-sticker` | 512x512 | 1:1 |
 
 ### Gradients
 
 | Name | Style |
 |------|-------|
-| `pastel` | Warm peach → salmon |
-| `moody` | Dark navy → dark blue |
-| `sunset` | Pink → yellow |
-| `ocean` | Blue → purple |
-| `mint` | Teal → pink |
+| `pastel` | Warm peach -> salmon |
+| `moody` | Dark navy -> dark blue |
+| `sunset` | Pink -> yellow |
+| `ocean` | Blue -> purple |
+| `mint` | Teal -> pink |
+
+## Deployment
+
+### GitHub Pages (static site, free)
+
+The web app is fully client-side — deploy `static/` to GitHub Pages:
+
+1. Go to repo **Settings > Pages**
+2. Set source to **Deploy from a branch**
+3. Set branch to `main` and folder to `/static`
+4. Your app is live at `https://<username>.github.io/lyric-stickers/`
+
+### Docker (self-hosted)
+
+A Dockerfile is included for running the full Python backend version (FastAPI + Pillow):
+
+```bash
+docker build -t lyric-stickers .
+docker run -p 8000:8000 lyric-stickers
+```
+
+This runs the FastAPI server at `http://localhost:8000`.
+
+Deploy the container to any host that runs Docker:
+
+| Platform | Cost | Notes |
+|----------|------|-------|
+| **Render.com** | Free tier | Sleeps after 15min inactivity |
+| **Fly.io** | Free allowance | Stays warm, good free tier |
+| **Railway** | ~$5/mo | Simple deploy from GitHub |
+| **PikaPods** | ~$1/mo | One-click open-source app hosting |
+
+### Local dev server (FastAPI)
+
+```bash
+pip install -r requirements.txt
+uvicorn app:app --reload --port 8000
+```
+
+## Credits
+
+Made by foxelas. More on [belleelene](https://belleelene.com)
