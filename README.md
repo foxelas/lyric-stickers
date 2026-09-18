@@ -124,4 +124,4 @@ uvicorn app:app --reload --port 8000
 
 ## Credits
 
-Made by foxelas. More on [belleelene](https://belleelene.com)
+Made by foxelas.

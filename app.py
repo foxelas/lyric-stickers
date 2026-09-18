@@ -80,4 +80,4 @@ async def config():
     }
 
 
-app.mount("/", StaticFiles(directory="static", html=True), name="static")
+app.mount("/", StaticFiles(directory="docs", html=True), name="docs")
